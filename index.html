@@ -53,6 +53,7 @@
       cursor: pointer;
       transition: all 0.3s ease;
       margin-bottom: 20px;
+      margin-right: 10px;
     }
 
     button:hover {
@@ -62,6 +63,7 @@
 
     pre {
       display: none;
+      opacity: 0;
       background: #112d4e; 
       padding: 15px; 
       border-radius: 10px; 
@@ -70,9 +72,9 @@
       font-size: 15px;
       color: #caf0f8;
       text-align: left;
+      transition: opacity 0.4s ease;
     }
 
-    
     pre::-webkit-scrollbar {
       width: 8px;
     }
@@ -102,6 +104,7 @@
     <h2>Paste your text here</h2>
     <textarea id="input" placeholder="Paste your snippet here"></textarea><br>
     <button onclick="extractIDs()">Extract IDs</button>
+    <button onclick="copyIDs()">Copy IDs</button>
 
     <h3>Extracted IDs:</h3>
     <pre id="output"></pre>
@@ -115,19 +118,37 @@
 
   <script>
     function extractIDs() {
-      const text = document.getElementById("input").value;
+      const text = document.getElementById("input").value.trim();
 
-      const matches = text.match(/"id"\s*:\s*"([^"]+)"/g);
-
-      if (!matches) {
-        document.getElementById("output").textContent = "No IDs found!";
-      } else {
-        const ids = matches.map(m => m.match(/"id"\s*:\s*"([^"]+)"/)[1]);
-        document.getElementById("output").textContent = ids.join("\n");
+      if (!text) {
+        alert("Please paste your snippet first!");
+        return;
       }
 
-      
-      document.getElementById("output").style.display = "block";
+      const matches = text.match(/"id"\s*:\s*"([^"]+)"/g);
+      const output = document.getElementById("output");
+
+      if (!matches) {
+        output.textContent = "No IDs found!";
+      } else {
+        const ids = matches.map(m => m.match(/"id"\s*:\s*"([^"]+)"/)[1]);
+        output.textContent = ids.join("\n");
+      }
+
+      // Show with fade-in
+      output.style.display = "block";
+      setTimeout(() => { output.style.opacity = "1"; }, 50);
+    }
+
+    function copyIDs() {
+      const ids = document.getElementById("output").textContent;
+      if (!ids) {
+        alert("No IDs to copy!");
+        return;
+      }
+      navigator.clipboard.writeText(ids).then(() => {
+        alert("IDs copied to clipboard!");
+      });
     }
   </script>
 </body>
