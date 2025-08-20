@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Extract IDs</title>
+  <title>Pixeldrain ID Extractor</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,14 +20,34 @@
       width: 100%;
       max-width: 800px;
       text-align: center;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+      padding: 30px;
+      background: #0b1626;
     }
 
     h2 { margin-bottom: 15px; color: #a0c4ff; }
     h3 { margin-top: 20px; margin-bottom: 10px; color: #90e0ef; }
 
-    textarea {
+    .tabs { display: flex; justify-content: center; margin-bottom: 15px; }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      background: #112d4e;
+      color: #90e0ef;
+      margin: 0 5px;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    .tab:hover { transform: scale(1.05); }
+    .tab.active { background: #3a86ff; color: white; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    textarea, input[type="file"] {
       width: 100%; 
-      height: 220px; 
       margin-bottom: 15px; 
       padding: 15px; 
       font-size: 16px; 
@@ -35,12 +55,15 @@
       border: none;
       background: #112d4e;
       color: #e0f0ff;
-      resize: vertical;
+      transition: box-shadow 0.3s ease;
     }
 
-    textarea::placeholder {
-      color: #8ecae6;
-      opacity: 0.7;
+    textarea { height: 220px; resize: vertical; }
+    textarea::placeholder { color: #8ecae6; opacity: 0.7; }
+
+    textarea:focus, input[type="file"]:focus {
+      outline: none;
+      box-shadow: 0 0 10px #3a86ff;
     }
 
     button {
@@ -53,18 +76,18 @@
       cursor: pointer;
       transition: all 0.3s ease;
       margin-bottom: 20px;
-      margin-right: 10px;
     }
 
-    button:hover {
-      filter: brightness(1.2);
-      transform: scale(1.05);
+    button:hover { filter: brightness(1.2); transform: scale(1.05); }
+
+    .result-box {
+      position: relative;
+      margin-top: 10px;
     }
 
     pre {
       display: none;
-      opacity: 0;
-      background: #112d4e; 
+      background: linear-gradient(145deg, #112d4e, #0d2238); 
       padding: 15px; 
       border-radius: 10px; 
       max-height: 300px; 
@@ -72,82 +95,126 @@
       font-size: 15px;
       color: #caf0f8;
       text-align: left;
-      transition: opacity 0.4s ease;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      transition: opacity 0.3s ease;
     }
 
-    pre::-webkit-scrollbar {
-      width: 8px;
-    }
-    pre::-webkit-scrollbar-track {
-      background: #0d1b2a;
-    }
-    pre::-webkit-scrollbar-thumb {
-      background: #3a86ff;
-      border-radius: 4px;
-    }
-
-    hr {
+    .copy-btn {
+      display: none;
+      position: absolute;
+      top: -40px;
+      right: 0;
+      padding: 6px 12px;
+      font-size: 14px;
       border: none;
-      border-top: 1px solid #3a86ff;
-      margin: 20px 0;
+      border-radius: 5px;
+      background: #3a86ff;
+      color: white;
+      cursor: pointer;
     }
+    .copy-btn:hover { filter: brightness(1.2); }
 
-    footer {
-      text-align: center;
-      color: #90e0ef;
+    .result-box #copy-msg {
+      position: absolute;
+      top: -40px;
+      right: 80px;
+      color: #4ade80;
       font-size: 14px;
     }
+
+    hr { border: none; border-top: 1px solid #3a86ff; margin: 20px 0; }
+
+    footer { text-align: center; color: #90e0ef; font-size: 14px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Paste your text here</h2>
-    <textarea id="input" placeholder="Paste your snippet here"></textarea><br>
-    <button onclick="extractIDs()">Extract IDs</button>
-    <button onclick="copyIDs()">Copy IDs</button>
+    <h2>Pixeldrain ID Extractor</h2>
+
+    <div class="tabs">
+      <button class="tab active" onclick="openTab('paste')">Paste Text</button>
+      <button class="tab" onclick="openTab('file')">Upload File</button>
+    </div>
+
+    <div id="paste" class="tab-content active">
+      <textarea id="inputText" placeholder="Paste Pixeldrain Source"></textarea>
+      <button onclick="extractIDs('inputText')">Extract IDs</button>
+    </div>
+
+    <div id="file" class="tab-content">
+      <input type="file" id="inputFile" accept=".txt,.html">
+      <button onclick="extractFromFile()">Extract IDs</button>
+    </div>
 
     <h3>Extracted IDs:</h3>
-    <pre id="output"></pre>
+    <div class="result-box">
+      <button class="copy-btn" onclick="copyIDs()">Copy</button>
+      <pre id="output"></pre>
+      <div id="copy-msg"></div>
+    </div>
 
     <hr>
-
-    <footer>
-      Created by Metiu &copy; AI
-    </footer>
+    <footer>Created by Metiu &copy; AI</footer>
   </div>
 
   <script>
-    function extractIDs() {
-      const text = document.getElementById("input").value.trim();
+    function openTab(tabId) {
+      document.querySelectorAll(".tab, .tab-content").forEach(el => el.classList.remove("active"));
+      document.getElementById(tabId).classList.add("active");
+      event.target.classList.add("active");
 
-      if (!text) {
-        alert("Please paste your snippet first!");
-        return;
-      }
+      document.getElementById("output").style.display = "none";
+      document.querySelector(".copy-btn").style.display = "none";
+      document.getElementById("output").textContent = "";
+      document.getElementById("copy-msg").textContent = "";
+    }
 
-      const matches = text.match(/"id"\s*:\s*"([^"]+)"/g);
+    function extractIDs(inputId) {
+      const text = document.getElementById(inputId).value;
+      processText(text);
+    }
+
+    function extractFromFile() {
+      const fileInput = document.getElementById("inputFile");
+      if (!fileInput.files.length) return alert("No file selected!");
+      const reader = new FileReader();
+      reader.onload = function(e) { processText(e.target.result); };
+      reader.readAsText(fileInput.files[0]);
+    }
+
+    function processText(text) {
+      const matches = [...text.matchAll(/"id"\s*:\s*"([^"]+)"/g)];
       const output = document.getElementById("output");
+      const copyBtn = document.querySelector(".copy-btn");
 
-      if (!matches) {
+      if (!matches.length) {
         output.textContent = "No IDs found!";
       } else {
-        const ids = matches.map(m => m.match(/"id"\s*:\s*"([^"]+)"/)[1]);
-        output.textContent = ids.join("\n");
+        output.textContent = matches.map(m => m[1]).join("\n");
       }
 
-      // Show with fade-in
       output.style.display = "block";
-      setTimeout(() => { output.style.opacity = "1"; }, 50);
+      copyBtn.style.display = "inline-block";
     }
 
     function copyIDs() {
-      const ids = document.getElementById("output").textContent;
-      if (!ids) {
-        alert("No IDs to copy!");
-        return;
-      }
-      navigator.clipboard.writeText(ids).then(() => {
-        alert("IDs copied to clipboard!");
+      const outputEl = document.getElementById("output");
+      const text = outputEl.textContent.trim();
+      if (!text) return;
+
+      navigator.clipboard.writeText(text).then(() => {
+        document.getElementById("copy-msg").textContent = "✅ Copied!";
+        setTimeout(() => document.getElementById("copy-msg").textContent = "", 2000);
+      }).catch(() => {
+        // fallback for unsupported contexts
+        const range = document.createRange();
+        range.selectNodeContents(outputEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.getElementById("copy-msg").textContent = "📋 Text selected — tap Copy";
+        setTimeout(() => document.getElementById("copy-msg").textContent = "", 2000);
       });
     }
   </script>
